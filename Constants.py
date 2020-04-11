@@ -1,0 +1,28 @@
+SCREEN_WIDTH = 600
+SCREEN_HEIGHT = 600
+res = (SCREEN_WIDTH, SCREEN_HEIGHT)
+
+JUMP_VELOCITY = 12
+MAX_JUMP = 150
+
+MAX_VEL_X = 9
+ACCELERATION = 0.2
+
+COMBO_JUMP_MULTIPLIER = 1
+MIN_COMBO_VEL = 3
+
+MENU_START_X = SCREEN_WIDTH/4
+MENU_START_Y = SCREEN_HEIGHT/8
+
+ARROW_HALF_HEIGHT = 33 #px
+ARROW_HALF_WIDTH = 43 #px
+
+GRAVITY = 0.6
+
+GAME_CAPTION = 'Icy Tower Clone'
+
+ICE_RESISTANCE = 0.1
+
+ABOUT_MESSAGE = ["This game, clone of Icy Tower,", "was made by Lidor Shimoni", " with the purpose of developing", "an AI BOT using NEAT", "evolution algorithm"]
+
+NUMBER_OF_BOTS = 100
