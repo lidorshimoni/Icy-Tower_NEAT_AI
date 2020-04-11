@@ -19,19 +19,19 @@ An Icy Tower Game Built with PyGame and AI with NEAT genetics algorithm.
 
 ## Running
 
-<!--Playing normal:-->
+-Playing normal:
 
 
-<!--```-->
-<!--python game.py -normal-->
-<!--```-->
+```
+python game.py -normal
+```
 
-<!--Bot Training:-->
+Bot Training:
 
 
-<!--```-->
-<!--python game.py -train-->
-<!--```-->
+```
+python game.py -train
+```
 
 
 ## Dependencies
