@@ -26,10 +26,12 @@ class Player:
     speed = 5
 
     def __init__(self):
+
         self.x = random.randint(1, 120) * 5
         self.y = 500
         self.score = -10  # negate floor platform -10
         self.combo_score = 0
+        self.prev_pos = [(self.x, self.y),(self.x, self.y),(self.x, self.y),(self.x, self.y)]
 
         self.spritesheet_image = load_image(resource_path('spritesheet.png'))
         self.spritesheet = []
@@ -101,6 +103,11 @@ class Player:
             self.x = 0
         if self.x + self.width >= SCREEN_WIDTH:
             self.x = SCREEN_WIDTH - self.width
+        self.prev_pos.append((self.x, self.y))
+        if len(self.prev_pos)>=4:
+            self.prev_pos.pop(0)
+
+
 
     def combo(self):
         if self.x == 0 or self.x + self.width >= SCREEN_WIDTH:

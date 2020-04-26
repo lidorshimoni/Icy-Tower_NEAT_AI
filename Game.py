@@ -8,6 +8,7 @@ from Platform import Platform
 from PlatformController import PlatformController
 from operator import attrgetter
 import visualize
+import queue
 
 pygame.init()
 
@@ -24,6 +25,11 @@ white = (255, 255, 255)
 red = (255, 0, 0)
 
 num_players = 70
+generations = 10000
+
+wee_track_file = 'data/wee.wav'
+# pygame.mixer.pre_init(44100, 16, 2, 4096)
+wee_track = pygame.mixer.Sound(wee_track_file)
 
 
 def reinit():
@@ -31,11 +37,12 @@ def reinit():
     global platform_controller
     global floor
     global camera
+    global prev_pos
     players = []
     for i in range(num_players):
         players.append(Player())
     platform_controller = PlatformController()
-    floor = Platform(0, SCREEN_HEIGHT - 36, SCREEN_WIDTH, 36,0)
+    floor = Platform(0, SCREEN_HEIGHT - 36, SCREEN_WIDTH, 36, 0)
     camera = Camera(players[0])
 
 
@@ -60,7 +67,7 @@ fps = 600
 # play_mode = "Single"
 play_mode = "Bot"
 gen = 0
-best_player= None
+best_player = None
 
 
 def menu():
@@ -84,11 +91,11 @@ def menu():
 
 def get_net_output(nets, index, inputs):
     output = nets[index].activate(inputs)
-    return {pygame.K_LEFT: output[0]>0.5, pygame.K_RIGHT: output[1]>0.5, pygame.K_SPACE: output[2]>0.5}
+    return {pygame.K_LEFT: output[0] > 0.5, pygame.K_RIGHT: output[1] > 0.5, pygame.K_SPACE: output[2] > 0.5}
 
 
 def playing(genomes=None, config=None, net=None):
-    global game_state, gen, players, best_player
+    global game_state, gen, players, best_player, prev_pos
     gen += 1
     if play_mode == "Bot" and genomes != None:
         nets = []
@@ -118,19 +125,25 @@ def playing(genomes=None, config=None, net=None):
 
             elif play_mode == "Bot":  # send inputs and get output
                 # ge[index].fitness += 0.1
-                net_inputs = [player.vel_x, player.vel_y, player.x, player.y, int(player.is_on_platform)]
-                for plat in platform_controller.platform_set[3:7]:
-                    net_inputs.append(plat.x)
-                    net_inputs.append(plat.width)
+                if pygame.key.get_pressed()[pygame.K_SPACE]:
+                    return
+                net_inputs = [int(player.is_on_platform)]
+                # net_inputs = [player.vel_x, player.vel_y, player.x, player.y, int(player.is_on_platform)]
+                # flatten = [item for sublist in player.prev_pos for item in sublist]
+                # net_inputs.extend(flatten)
+                for plat in platform_controller.platform_set[0:10]:
+                # for plat in platform_controller.platform_set[3:7]:
+                    net_inputs.append(plat.x - player.x + plat.width//2)
+                    # net_inputs.append(plat.x - player.x)
+                    # net_inputs.append(plat.width)
                 keys_pressed = get_net_output(nets, index, net_inputs)
 
-            elif play_mode == "Test":
-                net_inputs = [player.vel_x, player.vel_y, player.x, player.y, int(player.is_on_platform)]
-                for plat in platform_controller.platform_set[3:7]:
-                    net_inputs.append(plat.x)
-                    net_inputs.append(plat.width)
-                keys_pressed = get_net_output([net], 0, net_inputs)
-
+            # elif play_mode == "Test":
+            #     net_inputs = [player.vel_x, player.vel_y, player.x, player.y, int(player.is_on_platform)]
+            #     for plat in platform_controller.platform_set[3:7]:
+            #         net_inputs.append(plat.x)
+            #         net_inputs.append(plat.width)
+            #     keys_pressed = get_net_output([net], 0, net_inputs)
 
             if keys_pressed[pygame.K_LEFT]:
 
@@ -163,6 +176,7 @@ def playing(genomes=None, config=None, net=None):
                     player.sprite_index_y = 3
                     if player.vel_y >= JUMP_VELOCITY / 2:
                         player.vel_y = -JUMP_VELOCITY
+                        # wee_track.play()
                         if player.vel_x >= player.max_vel_x / 2 or player.vel_x <= -player.max_vel_x / 2:
                             player.vel_y *= COMBO_JUMP_MULTIPLIER * (1 + abs(player.vel_x) / 2 / MAX_VEL_X)
                             player.start_combo()
@@ -173,7 +187,6 @@ def playing(genomes=None, config=None, net=None):
             player.combo()
             player.collide_platform(floor, 0)
             platform_controller.collide_set(player)
-
 
             # platform_controller.generate_new_platforms(player)
             if play_mode == "Bot":
@@ -192,7 +205,6 @@ def playing(genomes=None, config=None, net=None):
                     ge.pop(index)
                     players.pop(index)
 
-
             # if play_mode == "Bot":
             #     ge[index-1].fitness = player.score + player.combo_score
 
@@ -207,8 +219,7 @@ def playing(genomes=None, config=None, net=None):
         best_player = max(players, key=attrgetter('score'))
         platform_controller.score = best_player.score
         camera.update(best_player)
-
-
+        # best_player.draw(game_display, camera)
         if best_player.score + best_player.combo_score > 2000:
             pickle.dump(nets[0], open("best.pickle", "wb"))
             break
@@ -230,7 +241,8 @@ def game_over():
     if pygame.font:
         message_display(game_display, "GAME OVER", 0, 100, 70, white, True)
         message_display(game_display,
-                        str("Floor: %d" % (best_player.score // 10)) + str(" Combo Score: %d" % best_player.combo_score),
+                        str("Floor: %d" % (best_player.score // 10)) + str(
+                            " Combo Score: %d" % best_player.combo_score),
                         0,
                         200, 50, white, True)
         message_display(game_display, "Total Score: %d" % (best_player.score + best_player.combo_score), 0, 300, 50,
@@ -312,6 +324,7 @@ def main():
     pygame.quit()
     quit()
 
+
 def bot(config_path):
     global game_state
     config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
@@ -329,7 +342,7 @@ def bot(config_path):
 
     # Run for up to 50 generations.
     game_state = "Playing"
-    winner = p.run(playing, 1000)
+    winner = p.run(playing, generations)
 
     # show final stats
     print('\nBest genome:\n{!s}'.format(winner))
@@ -337,7 +350,7 @@ def bot(config_path):
     import os
     os.environ["PATH"] += os.pathsep + r'C:\Program Files (x86)\Graphviz2.38\bin'
 
-    # node_names={}
+    node_names = {1: "velx", 2: "vely", 3: "x", 4: "y", 5: "grounded"}
     visualize.draw_net(config, winner, view=False)
     # visualize.draw_net(config, winner, node_names=node_names, view=False)
     visualize.plot_stats(stats, ylog=False, view=False)
